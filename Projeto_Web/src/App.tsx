@@ -1,22 +1,21 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legende, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './App.css';
 
-// Dados dos sensores
-
+// Interface para os dados dos sensores
 interface SensorData {
   timestamp: string;
-  plant1?: number; //sensor da plantação 1
-  plant2?: number; //sensor da plantação 2
-  plant3?: number; //sensor da plantação 3
-  plant4?: number; //sensor da plantação 4
-  tanque5?: number; //sensor do tanque
-
-  umidade1?: number; //umidade dos sensores 1,2,3 e 4
-  umidade2?: number;
-  umidade3?: number;
-  umidade4?: number;
+  plant_1_TEMP?: number;
+  plant_1_HUM?: number;
+  plant_2_TEMP?: number;
+  plant_2_HUM?: number;
+  plant_3_TEMP?: number;
+  plant_3_HUM?: number;
+  plant_4_TEMP?: number;
+  plant_4_HUM?: number;
+  tanque_TEMP?: number;
+  tanque_PH?: number;
 }
 
 function App() {
@@ -24,67 +23,136 @@ function App() {
   const [latestData, setLatestData] = useState<SensorData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-}
 
-//Função para buscar dados no Qubitro
- const fetchData = async () => {
+  // Função para buscar dados do Qubitro
+    const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      
-      // Endereço da API no Qubitro para pegar os dados
-      const response = await axios.get('https://api.qubitro.com/v2/projects/PROJETO_ID/devices/DEVICE_ID/data', {
-        headers: {
-          'Authorization': 'Bearer MEU_TOKEN_AQUI',
-          'Content-Type': 'application/json'
+      const response = await axios.get('sem chave',
+        {
+          headers: {
+            'Authorization': 'sem chave',
+            'Content-Type': 'sem chave'
+          },
+          params: {
+            page: 1,
+            limit: 10,
+            range: 'all'
+          }
         }
-      } );
+       );
 
-// Processar os dados recebidos
-      const formattedData = response.data.map((item: any) => ({
-        timestamp: new Date(item.timestamp).toLocaleString(),
-        plant1: item.plant1,
-        plant2: item.plant2,
-        plant3: item.plant3,
-        plant4: item.plant4,
-        tanque5: item.tanque5,
-        umidade1: item.umidade1,
-        umidade2: item.umidade2,
-        umidade3: item.umidade3,
-        umidade4: item.umidade4
-      }));
-      
-      setSensorData(formattedData);
-      
-      // Definir os dados mais recentes
-      if (formattedData.length > 0) {
-        setLatestData(formattedData[0]);
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        let processedData: SensorData[] = [];
+        try {
+          processedData = response.data.data.map((item: any) => {
+            const timeValue = item.time || item.timestamp;
+            if (!timeValue) {
+              console.warn('Item sem timestamp válido:', item);
+              return null;
+            }
+            return {
+              timestamp: new Date(timeValue).toLocaleString(),
+              plant_1_TEMP: item.plant_1_TEMP,
+              plant_1_HUM: item.plant_1_HUM,
+              plant_2_TEMP: item.plant_2_TEMP,
+              plant_2_HUM: item.plant_2_HUM,
+              plant_3_TEMP: item.plant_3_TEMP,
+              plant_3_HUM: item.plant_3_HUM,
+              plant_4_TEMP: item.plant_4_TEMP,
+              plant_4_HUM: item.plant_4_HUM,
+              tanque_TEMP: item.tanque_TEMP,
+              tanque_PH: item.tanque_PH
+            };
+            }).filter((item: SensorData | null): item is SensorData => item !== null);
+
+
+        } catch (processingError) {
+          console.error('Erro ao processar os dados recebidos:', processingError);
+          setError('Erro ao processar os dados recebidos da API.');
+          setSensorData([]);
+          setLatestData(null);
+          return; 
+        }
+
+        const sortedForDisplay = [...processedData].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        setSensorData(processedData.reverse()); 
+
+        if (sortedForDisplay.length > 0) {
+          setLatestData(sortedForDisplay[0]);
+        } else {
+          setLatestData(null);
+          setError('Nenhum dado válido encontrado na resposta da API.'); 
+        }
+
+      } else {
+        console.error('Estrutura inesperada da resposta da API:', response.data);
+        setError('Resposta inesperada da API. Verifique o console.');
+        setSensorData([]);
+        setLatestData(null);
       }
-      
-      setError(null);
-    } catch (err) {
-      console.error('Erro ao buscar dados:', err);
-      setError('Falha ao buscar dados dos sensores. Por favor, verifique sua conexão e tente novamente.');
 
-       
+    } catch (apiError) {
+      console.error('Erro ao buscar dados da API:', apiError);
+      if (axios.isAxiosError(apiError) && apiError.response) {
+        setError(`Falha ao buscar dados: ${apiError.response.status} ${apiError.response.statusText}. Verifique URL, token e parâmetros.`);
+      } else {
+        setError('Falha ao buscar dados dos sensores. Verifique a conexão e a URL.');
+      }
+      setSensorData([]);
+      setLatestData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Buscar dados quando o componente for montado
   useEffect(() => {
     fetchData();
     
-    // Intervalo para buscar dados a cada 30 segundos
+    // intervalo para buscar dados a cada 30 segundos
     const interval = setInterval(fetchData, 30000);
     
-    
+    // Limpar o intervalo quando o componente for desmontado
     return () => clearInterval(interval);
   }, []);
 
-  // Função para formatar valores de temperatura
+  // Funções auxiliares (formatTemperature, formatHumidity, formatPH, get*Class) 
   const formatTemperature = (value?: number) => {
     return value !== undefined ? `${value.toFixed(1)}°C` : 'N/A';
   };
 
-  // Função para formatar valores de umidade
   const formatHumidity = (value?: number) => {
     return value !== undefined ? `${value.toFixed(1)}%` : 'N/A';
   };
+
+  const formatPH = (value?: number) => {
+    return value !== undefined ? `${value.toFixed(1)}` : 'N/A';
+  };
+
+  const getTemperatureClass = (value?: number) => {
+    if (value === undefined) return 'normal';
+    if (value > 30) return 'high';
+    if (value < 15) return 'low';
+    return 'normal';
+  };
+
+  const getHumidityClass = (value?: number) => {
+    if (value === undefined) return 'normal';
+    if (value > 70) return 'high';
+    if (value < 30) return 'low';
+    return 'normal';
+  };
+
+  const getPHClass = (value?: number) => {
+    if (value === undefined) return 'normal';
+    if (value > 7.5 || value < 6.5) return 'high';
+    return 'normal';
+  };
+
 
   return (
     <div className="App">
@@ -94,81 +162,89 @@ function App() {
       </header>
 
       <main className="App-main">
-        {loading && !latestData && <p className="loading">Carregando dados dos sensores...</p>}
+        {loading && <p className="loading">Carregando dados dos sensores...</p>}
         
         {error && <p className="error">{error}</p>}
         
-        {latestData && (
+        {!loading && !error && latestData && (
           <div className="dashboard">
             <div className="last-update">
               <p>Última atualização: {latestData.timestamp}</p>
-              <button onClick={fetchData} className="refresh-button">Atualizar Dados</button>
+              <button onClick={fetchData} disabled={loading} className="refresh-button">
+                {loading ? 'Atualizando...' : 'Atualizar Dados'}
+              </button>
             </div>
             
             <div className="sensor-grid">
-              {/* Sensor (Tanque) */}
+              {/* Cards de sensores  */}
               <div className="sensor-card">
                 <h3>Sensor do Tanque</h3>
-                <p className="sensor-value">{latestData.tanque1 || 'N/A'}</p>
-                <p className="sensor-label">Valor Analógico</p>
-              </div>
-              
-              {/* Sensores de Temperatura */}
-              <div className="sensor-card">
-                <h3>Setor Norte</h3>
-                <p className={`sensor-value ${getTemperatureClass(latestData.sensor1)}`}>
-                  {formatTemperature(latestData.sensor1)}
+                <p className={`sensor-value ${getTemperatureClass(latestData.tanque_TEMP)}`}>
+                  {formatTemperature(latestData.tanque_TEMP)}
                 </p>
                 <p className="sensor-label">Temperatura</p>
-                <p className={`sensor-value ${getHumidityClass(latestData.umidade1)}`}>
-                  {formatHumidity(latestData.umidade1)}
+                <p className={`sensor-value ${getPHClass(latestData.tanque_PH)}`}>
+                  {formatPH(latestData.tanque_PH)}
+                </p>
+                <p className="sensor-label">pH</p>
+              </div>
+              
+              <div className="sensor-card">
+                <h3>Setor Norte</h3>
+                <p className={`sensor-value ${getTemperatureClass(latestData.plant_1_TEMP)}`}>
+                  {formatTemperature(latestData.plant_1_TEMP)}
+                </p>
+                <p className="sensor-label">Temperatura</p>
+                <p className={`sensor-value ${getHumidityClass(latestData.plant_1_HUM)}`}>
+                  {formatHumidity(latestData.plant_1_HUM)}
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
               
               <div className="sensor-card">
                 <h3>Setor Sul</h3>
-                <p className={`sensor-value ${getTemperatureClass(latestData.sensor2)}`}>
-                  {formatTemperature(latestData.sensor2)}
+                <p className={`sensor-value ${getTemperatureClass(latestData.plant_2_TEMP)}`}>
+                  {formatTemperature(latestData.plant_2_TEMP)}
                 </p>
                 <p className="sensor-label">Temperatura</p>
-                <p className={`sensor-value ${getHumidityClass(latestData.umidade2)}`}>
-                  {formatHumidity(latestData.umidade2)}
+                <p className={`sensor-value ${getHumidityClass(latestData.plant_2_HUM)}`}>
+                  {formatHumidity(latestData.plant_2_HUM)}
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
               
               <div className="sensor-card">
                 <h3>Setor Leste</h3>
-                <p className={`sensor-value ${getTemperatureClass(latestData.sensor3)}`}>
-                  {formatTemperature(latestData.sensor3)}
+                <p className={`sensor-value ${getTemperatureClass(latestData.plant_3_TEMP)}`}>
+                  {formatTemperature(latestData.plant_3_TEMP)}
                 </p>
                 <p className="sensor-label">Temperatura</p>
-                <p className={`sensor-value ${getHumidityClass(latestData.umidade3)}`}>
-                  {formatHumidity(latestData.umidade3)}
+                <p className={`sensor-value ${getHumidityClass(latestData.plant_3_HUM)}`}>
+                  {formatHumidity(latestData.plant_3_HUM)}
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
               
               <div className="sensor-card">
                 <h3>Setor Oeste</h3>
-                <p className={`sensor-value ${getTemperatureClass(latestData.sensor4)}`}>
-                  {formatTemperature(latestData.sensor4)}
+                <p className={`sensor-value ${getTemperatureClass(latestData.plant_4_TEMP)}`}>
+                  {formatTemperature(latestData.plant_4_TEMP)}
                 </p>
                 <p className="sensor-label">Temperatura</p>
-                <p className={`sensor-value ${getHumidityClass(latestData.umidade4)}`}>
-                  {formatHumidity(latestData.umidade4)}
+                <p className={`sensor-value ${getHumidityClass(latestData.plant_4_HUM)}`}>
+                  {formatHumidity(latestData.plant_4_HUM)}
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
             </div>
             
             <div className="charts-container">
+              {/*  */}
               <div className="chart-wrapper">
                 <h3>Histórico de Temperatura</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart
-                    data={sensorData}
+                    data={sensorData} 
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -176,10 +252,11 @@ function App() {
                     <YAxis label={{ value: 'Temperatura (°C)', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="Plant1" name="Norte" stroke="#8884d8" />
-                    <Line type="monotone" dataKey="Plant2" name="Sul" stroke="#82ca9d" />
-                    <Line type="monotone" dataKey="Plant3" name="Leste" stroke="#ff7300" />
-                    <Line type="monotone" dataKey="Plant4" name="Oeste" stroke="#0088aa" />
+                    <Line type="monotone" dataKey="plant_1_TEMP" name="Norte" stroke="#8884d8" dot={false} />
+                    <Line type="monotone" dataKey="plant_2_TEMP" name="Sul" stroke="#82ca9d" dot={false} />
+                    <Line type="monotone" dataKey="plant_3_TEMP" name="Leste" stroke="#ff7300" dot={false} />
+                    <Line type="monotone" dataKey="plant_4_TEMP" name="Oeste" stroke="#0088aa" dot={false} />
+                    <Line type="monotone" dataKey="tanque_TEMP" name="Tanque" stroke="#ffc658" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -188,7 +265,7 @@ function App() {
                 <h3>Histórico de Umidade</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart
-                    data={sensorData}
+                    data={sensorData} // Dados do mais antigo para o mais recente
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -196,15 +273,19 @@ function App() {
                     <YAxis label={{ value: 'Umidade (%)', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="umidade1" name="Norte" stroke="#8884d8" />
-                    <Line type="monotone" dataKey="umidade2" name="Sul" stroke="#82ca9d" />
-                    <Line type="monotone" dataKey="umidade3" name="Leste" stroke="#ff7300" />
-                    <Line type="monotone" dataKey="umidade4" name="Oeste" stroke="#0088aa" />
+                    <Line type="monotone" dataKey="plant_1_HUM" name="Norte" stroke="#8884d8" dot={false} />
+                    <Line type="monotone" dataKey="plant_2_HUM" name="Sul" stroke="#82ca9d" dot={false} />
+                    <Line type="monotone" dataKey="plant_3_HUM" name="Leste" stroke="#ff7300" dot={false} />
+                    <Line type="monotone" dataKey="plant_4_HUM" name="Oeste" stroke="#0088aa" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
+        )}
+        
+        {!loading && !error && !latestData && (
+          <p className="loading">Nenhum dado de sensor encontrado ou falha ao carregar.</p>
         )}
       </main>
 
@@ -216,3 +297,4 @@ function App() {
 }
 
 export default App;
+

@@ -1,54 +1,86 @@
-# React + TypeScript + Vite
+Monitoramento de Sensores - Interface Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este projeto é uma página web simples feita com React e TypeScript para mostrar dados de sensores (temperatura, umidade) que vêm do Qubitro.
 
-Currently, two official plugins are available:
+O que faz?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+•
+Busca dados dos sensores da API do Qubitro a cada 30 segundos.
 
-## Expanding the ESLint configuration
+•
+Mostra os valores mais recentes em "cartões" na tela.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+•
+Exibe gráficos com o histórico de temperatura e umidade.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+•
+Muda a cor dos valores se estiverem muito altos ou baixos.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Como Rodar
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1.
+Instalar dependências:
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+•
+Abra o terminal na pasta do projeto.
+
+•
+Rode: npm install
+
+
+
+2.
+Configurar a Conexão com Qubitro (Importante!):
+
+•
+Abra o arquivo src/App.tsx.
+
+•
+Encontre a linha com axios.get(...).
+
+•
+Substitua SEU_PROJECT_ID e SEU_DEVICE_ID pelos IDs corretos do Qubitro.
+
+•
+Substitua SEU_TOKEN_AQUI pelo Token de API do Qubitro (obtido nas configurações do Qubitro).
+
+
+
+3.
+Iniciar a Aplicação:
+
+•
+No terminal: npm run dev
+
+•
+Abra o navegador no endereço que aparecer (http://localhost:5173).
+
+
+
+Arquivos Principais
+
+•
+src/App.tsx: Contém todo o código principal da página (busca de dados, exibição, gráficos).
+
+•
+src/App.css: Define a aparência da página (cores, layout, fontes).
+
+•
+package.json: Lista as bibliotecas que o projeto usa (React, axios, recharts).
+
+Como Funciona (Resumo)
+
+•
+useState: Guarda os dados dos sensores e informações como "está carregando?" ou "deu erro?".
+
+•
+useEffect: É usado para buscar os dados do Qubitro assim que a página carrega e depois a cada 30 segundos.
+
+•
+axios: Biblioteca usada para fazer a "chamada" (requisição) para a API do Qubitro e pegar os dados.
+
+•
+recharts: Biblioteca usada para desenhar os gráficos de linha.
+
+•
+JSX (no return): É como escrevemos HTML dentro do JavaScript/React para definir como a página vai aparecer.
