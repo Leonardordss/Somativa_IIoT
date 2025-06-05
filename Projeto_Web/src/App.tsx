@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import MaintenanceForm from './components/MaintenanceForm';
 import './App.css';
 
-// Interface para os dados dos sensores
+// Interface para os dados formatados (após processamento)
 interface SensorData {
   timestamp: string;
+  plant_1_TEMP?: number;
+  plant_1_HUM?: number;
+  plant_2_TEMP?: number;
+  plant_2_HUM?: number;
+  plant_3_TEMP?: number;
+  plant_3_HUM?: number;
+  plant_4_TEMP?: number;
+  plant_4_HUM?: number;
+  tanque_TEMP?: number;
+  tanque_PH?: number;
+}
+
+// Interface para os dados brutos da API
+interface ApiSensorData {
+  time?: string;
+  timestamp?: string;
   plant_1_TEMP?: number;
   plant_1_HUM?: number;
   plant_2_TEMP?: number;
@@ -24,30 +41,27 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Função para buscar dados do Qubitro
-    const fetchData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get('sem chave',
-        {
-          headers: {
-            'Authorization': 'sem chave',
-            'Content-Type': 'sem chave'
-          },
-          params: {
-            page: 1,
-            limit: 10,
-            range: 'all'
-          }
+      const response = await axios.get('api qubitro', {
+        headers: {
+          'Authorization': 'chave',
+          'Content-Type': 'chave'
+        },
+        params: {
+          page: 1,
+          limit: 10,
+          range: 'all'
         }
-       );
+      });
 
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         let processedData: SensorData[] = [];
         try {
-          processedData = response.data.data.map((item: any) => {
+          processedData = response.data.data.map((item: ApiSensorData) => {
             const timeValue = item.time || item.timestamp;
             if (!timeValue) {
               console.warn('Item sem timestamp válido:', item);
@@ -66,35 +80,33 @@ function App() {
               tanque_TEMP: item.tanque_TEMP,
               tanque_PH: item.tanque_PH
             };
-            }).filter((item: SensorData | null): item is SensorData => item !== null);
-
-
+          }).filter((item: SensorData | null): item is SensorData => item !== null);
         } catch (processingError) {
           console.error('Erro ao processar os dados recebidos:', processingError);
           setError('Erro ao processar os dados recebidos da API.');
           setSensorData([]);
           setLatestData(null);
-          return; 
+          return;
         }
 
-        const sortedForDisplay = [...processedData].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const sortedForDisplay = [...processedData].sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
 
-        setSensorData(processedData.reverse()); 
+        setSensorData(processedData.reverse());
 
         if (sortedForDisplay.length > 0) {
           setLatestData(sortedForDisplay[0]);
         } else {
           setLatestData(null);
-          setError('Nenhum dado válido encontrado na resposta da API.'); 
+          setError('Nenhum dado válido encontrado na resposta da API.');
         }
-
       } else {
         console.error('Estrutura inesperada da resposta da API:', response.data);
         setError('Resposta inesperada da API. Verifique o console.');
         setSensorData([]);
         setLatestData(null);
       }
-
     } catch (apiError) {
       console.error('Erro ao buscar dados da API:', apiError);
       if (axios.isAxiosError(apiError) && apiError.response) {
@@ -287,6 +299,12 @@ function App() {
         {!loading && !error && !latestData && (
           <p className="loading">Nenhum dado de sensor encontrado ou falha ao carregar.</p>
         )}
+
+        {/* Adiciona o formulário de manutenção abaixo dos gráficos */}
+      <section className="maintenance-section">
+        <MaintenanceForm />
+      </section>
+
       </main>
 
       <footer className="App-footer">
