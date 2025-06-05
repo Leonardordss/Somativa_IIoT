@@ -27,7 +27,7 @@ const MaintenanceForm: React.FC = () => {
     setSubmitStatus(null);
     setErrorMessage(null);
 
-    // Validação simples (pode ser mais robusta)
+    // Validação simples
     if (!formData.tipoEquipamento || !formData.dataManutencao || !formData.descricaoManutencao) {
       setErrorMessage('Todos os campos são obrigatórios.');
       setIsSubmitting(false);
@@ -97,7 +97,7 @@ const MaintenanceForm: React.FC = () => {
           />
         </div>
 
-        {/* Feedback para o usuário */}
+        {/* Resposta para o usuário */}
         {submitStatus === 'success' && <p className="success-message">Manutenção registrada com sucesso!</p>}
         {submitStatus === 'error' && <p className="error-message">{errorMessage || 'Ocorreu um erro.'}</p>}
         {errorMessage && !submitStatus && <p className="error-message">{errorMessage}</p>}

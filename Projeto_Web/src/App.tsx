@@ -300,7 +300,7 @@ function App() {
           <p className="loading">Nenhum dado de sensor encontrado ou falha ao carregar.</p>
         )}
 
-        {/* Adiciona o formulário de manutenção abaixo dos gráficos */}
+        {/* Formulário de manutenção abaixo dos gráficos */}
       <section className="maintenance-section">
         <MaintenanceForm />
       </section>
