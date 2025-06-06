@@ -65,14 +65,21 @@ const MaintenanceForm: React.FC = () => {
         <div className="form-group">
           <label htmlFor="tipoEquipamento">Tipo de Equipamento:</label>
           {}
-          <input
-            type="text"
+          <select
             id="tipoEquipamento"
             name="tipoEquipamento"
             value={formData.tipoEquipamento}
             onChange={handleChange}
             required
-          />
+            >
+            <option value="">Selecione um equipamento</option>
+            <option value="Sensor Norte">Sensor Norte</option>
+            <option value="Sensor Sul">Sensor Sul</option>
+            <option value="Sensor Leste">Sensor Leste</option>
+            <option value="Sensor Oeste">Sensor Oeste</option>
+            <option value="Sensor Tanque">Sensor Tanque</option>
+          </select>
+
         </div>
         <div className="form-group">
           <label htmlFor="dataManutencao">Data da Manutenção:</label>

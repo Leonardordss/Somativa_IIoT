@@ -39,12 +39,12 @@ Abra o arquivo src/App.tsx.
 Encontre a linha com axios.get(...).
 
 •
-Substitua SEU_PROJECT_ID e SEU_DEVICE_ID pelos IDs corretos do Qubitro.
+Substitua PROJECT_ID e DEVICE_ID pelos IDs corretos do Qubitro.
 
 •
-Substitua SEU_TOKEN_AQUI pelo Token de API do Qubitro (obtido nas configurações do Qubitro).
+Substitua TOKEN pelo Token de API do Qubitro (obtido nas configurações do Qubitro).
 
-
+No arquivo .env deve ter os tokens do Contentful SpaceID e CMA token. Caso o arquivo .env não esteja na raiz do projeto, deve criar novamente.
 
 3.
 Iniciar a Aplicação:

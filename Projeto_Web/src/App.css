@@ -151,3 +151,36 @@
     gap: 10px;
   }
 }
+
+/* Estilos para a lista de manutenção */
+.maintenance-records {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.maintenance-records h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.maintenance-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.maintenance-item {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.maintenance-item strong {
+  color: #555;
+}

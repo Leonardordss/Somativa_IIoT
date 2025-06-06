@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import MaintenanceForm from './components/MaintenanceForm';
+// manutenção
+import { fetchMaintenanceRecords, type MaintenanceRecordEntry } from './services/contentfulService'; 
 import './App.css';
 
-// Interface para os dados formatados (após processamento)
+// Interface para os dados formatados dos sensores
 interface SensorData {
   timestamp: string;
   plant_1_TEMP?: number;
@@ -19,7 +21,7 @@ interface SensorData {
   tanque_PH?: number;
 }
 
-// Interface para os dados brutos da API
+// Interface para os dados brutos da API de sensores
 interface ApiSensorData {
   time?: string;
   timestamp?: string;
@@ -36,18 +38,26 @@ interface ApiSensorData {
 }
 
 function App() {
+  // Estados para dados dos sensores
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
   const [latestData, setLatestData] = useState<SensorData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Estados adicionados para registros de manutenção
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecordEntry[]>([]);
+  const [loadingMaintenance, setLoadingMaintenance] = useState<boolean>(true);
+  const [errorMaintenance, setErrorMaintenance] = useState<string | null>(null);
+
+  // Função para buscar dados dos sensores (Qubitro)
   const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get('api qubitro', {
+      const response = await axios.get('', {
         headers: {
+         
           'Authorization': 'chave',
           'Content-Type': 'chave'
         },
@@ -121,16 +131,31 @@ function App() {
     }
   };
 
-  // Buscar dados quando o componente for montado
+  // useEffect para buscar dados dos sensores (com intervalo)
   useEffect(() => {
     fetchData();
-    
-    // intervalo para buscar dados a cada 30 segundos
     const interval = setInterval(fetchData, 30000);
-    
-    // Limpar o intervalo quando o componente for desmontado
     return () => clearInterval(interval);
   }, []);
+
+
+  useEffect(() => {
+    const loadMaintenanceData = async () => {
+      setLoadingMaintenance(true);
+      setErrorMaintenance(null);
+      try {
+        const maintenanceData = await fetchMaintenanceRecords();
+        setMaintenanceRecords(maintenanceData.items);
+      } catch (err) {
+        console.error('Erro ao buscar dados de manutenção:', err);
+        setErrorMaintenance('Falha ao buscar registros de manutenção.');
+        setMaintenanceRecords([]);
+      } finally {
+        setLoadingMaintenance(false);
+      }
+    };
+    loadMaintenanceData();
+  }, []); 
 
   // Funções auxiliares (formatTemperature, formatHumidity, formatPH, get*Class) 
   const formatTemperature = (value?: number) => {
@@ -174,10 +199,9 @@ function App() {
       </header>
 
       <main className="App-main">
+        {/* Seção de Sensores */}
         {loading && <p className="loading">Carregando dados dos sensores...</p>}
-        
         {error && <p className="error">{error}</p>}
-        
         {!loading && !error && latestData && (
           <div className="dashboard">
             <div className="last-update">
@@ -186,9 +210,8 @@ function App() {
                 {loading ? 'Atualizando...' : 'Atualizar Dados'}
               </button>
             </div>
-            
             <div className="sensor-grid">
-              {/* Cards de sensores  */}
+              {/* Cards de sensores */}
               <div className="sensor-card">
                 <h3>Sensor do Tanque</h3>
                 <p className={`sensor-value ${getTemperatureClass(latestData.tanque_TEMP)}`}>
@@ -200,7 +223,6 @@ function App() {
                 </p>
                 <p className="sensor-label">pH</p>
               </div>
-              
               <div className="sensor-card">
                 <h3>Setor Norte</h3>
                 <p className={`sensor-value ${getTemperatureClass(latestData.plant_1_TEMP)}`}>
@@ -212,7 +234,6 @@ function App() {
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
-              
               <div className="sensor-card">
                 <h3>Setor Sul</h3>
                 <p className={`sensor-value ${getTemperatureClass(latestData.plant_2_TEMP)}`}>
@@ -224,7 +245,6 @@ function App() {
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
-              
               <div className="sensor-card">
                 <h3>Setor Leste</h3>
                 <p className={`sensor-value ${getTemperatureClass(latestData.plant_3_TEMP)}`}>
@@ -236,7 +256,6 @@ function App() {
                 </p>
                 <p className="sensor-label">Umidade</p>
               </div>
-              
               <div className="sensor-card">
                 <h3>Setor Oeste</h3>
                 <p className={`sensor-value ${getTemperatureClass(latestData.plant_4_TEMP)}`}>
@@ -249,16 +268,11 @@ function App() {
                 <p className="sensor-label">Umidade</p>
               </div>
             </div>
-            
             <div className="charts-container">
-              {/*  */}
               <div className="chart-wrapper">
                 <h3>Histórico de Temperatura</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart
-                    data={sensorData} 
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <LineChart data={sensorData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="timestamp" />
                     <YAxis label={{ value: 'Temperatura (°C)', angle: -90, position: 'insideLeft' }} />
@@ -272,14 +286,10 @@ function App() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              
               <div className="chart-wrapper">
                 <h3>Histórico de Umidade</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart
-                    data={sensorData} // Dados do mais antigo para o mais recente
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <LineChart data={sensorData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="timestamp" />
                     <YAxis label={{ value: 'Umidade (%)', angle: -90, position: 'insideLeft' }} />
@@ -295,17 +305,37 @@ function App() {
             </div>
           </div>
         )}
-        
         {!loading && !error && !latestData && (
           <p className="loading">Nenhum dado de sensor encontrado ou falha ao carregar.</p>
         )}
+      </main>
 
-        {/* Formulário de manutenção abaixo dos gráficos */}
+      {/* Seção para Formulário de Manutenção */}
       <section className="maintenance-section">
         <MaintenanceForm />
       </section>
 
-      </main>
+      {/* Seção adicionada para exibir Registros de Manutenção */}
+      <section className="maintenance-records">
+        <h2>Histórico de Manutenções</h2>
+        {loadingMaintenance && <p>Carregando histórico de manutenções...</p>}
+        {errorMaintenance && <p className="error-message">{errorMaintenance}</p>}
+        {!loadingMaintenance && !errorMaintenance && (
+          maintenanceRecords.length > 0 ? (
+            <ul className="maintenance-list">
+              {maintenanceRecords.map((record) => (
+                <li key={record.sys.id} className="maintenance-item">
+                  <strong>Equipamento:</strong> {record.fields.tipoEquipamento || 'N/A'}<br />
+                  <strong>Data:</strong> {record.fields.dataManutencao ? new Date(record.fields.dataManutencao).toLocaleDateString() : 'N/A'}<br />
+                  <strong>Descrição:</strong> {record.fields.descricaoManutencao || 'N/A'}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Nenhum registro de manutenção encontrado.</p>
+          )
+        )}
+      </section>
 
       <footer className="App-footer">
         <p>Sistema de Monitoramento de Plantação e Tanque - 2025</p>
@@ -315,4 +345,3 @@ function App() {
 }
 
 export default App;
-
